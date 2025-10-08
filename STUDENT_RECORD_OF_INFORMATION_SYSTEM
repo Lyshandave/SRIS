@@ -1,0 +1,241 @@
+using System;
+using System.Data.OleDb;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Drawing.Printing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STUDENT_RECORD_OF_INFORMATION_SYSTEM
+{
+    public partial class Form1 : Form
+    {
+        private PrintDocument printDocument1;
+        private PrintPreviewDialog printPreviewDialog1;
+        private Bitmap bitmap;
+
+        public Form1()
+        {
+            InitializeComponent();
+
+           
+            printDocument1 = new PrintDocument();
+            printPreviewDialog1 = new PrintPreviewDialog();
+
+          
+            printDocument1.PrintPage += new PrintPageEventHandler(printDocument1_PrintPage);
+        }
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            dataGridView1.ColumnCount = 6;
+
+            dataGridView1.Columns[0].Name = "StudentID";
+            dataGridView1.Columns[1].Name = "Lastname";
+            dataGridView1.Columns[2].Name = "Firstname";
+            dataGridView1.Columns[3].Name = "Middlename";
+            dataGridView1.Columns[4].Name = "DateOfBirth";
+            dataGridView1.Columns[5].Name = "MobileNo";
+
+           
+            dataGridView1.Columns["StudentID"].Width = 140;
+            dataGridView1.Columns["Lastname"].Width = 120;
+            dataGridView1.Columns["Firstname"].Width = 120;
+            dataGridView1.Columns["Middlename"].Width = 120;
+            dataGridView1.Columns["DateOfBirth"].Width = 150;
+            dataGridView1.Columns["MobileNo"].Width = 100;
+        }
+
+
+
+        private void MeExit()
+        {
+            DialogResult iExit;
+
+            iExit = MessageBox.Show(
+                "Confirm if you want to exit",
+                "Save DataGridView",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information
+            );
+
+            if (iExit == DialogResult.Yes)
+            {
+                Application.Exit(); 
+            }
+        }
+
+       
+        private void button5_Click(object sender, EventArgs e)
+        {
+            MeExit(); 
+        }
+
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            dataGridView1.Rows.Add(textBox1.Text, textBox2.Text, textBox3.Text, textBox4.Text,
+            textBox5.Text, textBox6.Text);
+        }
+
+        private void iDelete()
+        {
+            foreach (DataGridViewRow item in this.dataGridView1.SelectedRows)
+            {
+                dataGridView1.Rows.RemoveAt(item.Index);
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            iDelete();
+        }
+
+        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            iDelete();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            iReset();
+        }
+
+        private void iReset()
+        {
+            
+            foreach (Control c in this.Controls)
+            {
+                if (c is TextBox)
+                {
+                    ((TextBox)c).Clear();
+                }
+            }
+
+           
+            foreach (Control c in this.Controls)
+            {
+                if (c is ComboBox)
+                {
+                    ((ComboBox)c).SelectedIndex = -1;
+                }
+            }
+
+            
+            foreach (Control c in this.Controls)
+            {
+                if (c is NumericUpDown)
+                {
+                    ((NumericUpDown)c).Value = ((NumericUpDown)c).Minimum;
+                }
+            }
+
+            if (dataGridView1.DataSource == null)
+            {
+                dataGridView1.Rows.Clear(); 
+            }
+            else
+            {
+                dataGridView1.DataSource = null; 
+            }
+
+           
+            MessageBox.Show(
+                "All text fields and table records have been cleared successfully.",
+                "Reset Complete",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+
+        private void resetToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            iReset();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                int originalHeight = dataGridView1.Height;
+                int newHeight = dataGridView1.RowCount * dataGridView1.RowTemplate.Height + dataGridView1.ColumnHeadersHeight;
+
+                dataGridView1.Height = newHeight;
+                bitmap = new Bitmap(dataGridView1.Width, dataGridView1.Height);
+                dataGridView1.DrawToBitmap(bitmap, new Rectangle(0, 0, dataGridView1.Width, dataGridView1.Height));
+
+                dataGridView1.Height = originalHeight;
+
+                printPreviewDialog1.Document = printDocument1;
+                printPreviewDialog1.PrintPreviewControl.Zoom = 1.0;
+                printPreviewDialog1.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error while printing: " + ex.Message, "Print Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void printDocument1_PrintPage(object sender, PrintPageEventArgs e)
+        {
+            if (bitmap != null)
+            {
+                e.Graphics.DrawImage(bitmap, 0, 0);
+            }
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            iSave();
+        }
+
+        private void iSave()
+        {
+            
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "CSV files (*.csv)|*.csv";
+                sfd.Title = "Save Student Records";
+
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    StringBuilder sb = new StringBuilder();
+
+                  
+                    for (int i = 0; i < dataGridView1.Columns.Count; i++)
+                    {
+                        sb.Append(dataGridView1.Columns[i].HeaderText);
+                        if (i < dataGridView1.Columns.Count - 1)
+                            sb.Append(",");
+                    }
+                    sb.AppendLine();
+
+                 
+                    foreach (DataGridViewRow row in dataGridView1.Rows)
+                    {
+                        if (!row.IsNewRow)
+                        {
+                            for (int i = 0; i < row.Cells.Count; i++)
+                            {
+                                sb.Append(row.Cells[i].Value);
+                                if (i < row.Cells.Count - 1)
+                                    sb.Append(",");
+                            }
+                            sb.AppendLine();
+                        }
+                    }
+
+                    
+                    System.IO.File.WriteAllText(sfd.FileName, sb.ToString());
+                    MessageBox.Show("Records saved successfully!", "Save Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
